@@ -1,0 +1,14 @@
+stage= "dev"
+branch= "^main$"
+project_id = "some-project"
+service_name = "some-service"
+location = "europe-west1"
+gcr_hostname = "eu.gcr.io"
+repo = "repo"
+repo_owner = "owner"
+allow_public_access = true
+env_vars = [ {
+  name = "API_URL"
+  value = "https://www.functn.com"
+} ]
+verified_domain_name = []

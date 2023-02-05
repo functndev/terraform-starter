@@ -1,0 +1,61 @@
+steps:
+  - name: "gcr.io/kaniko-project/executor:latest"
+    env:
+      - HUSKY=0
+    args:
+      - "--destination=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$_PR_NUMBERlatest"
+      - "--destination=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$_PR_NUMBER-$COMMIT_SHA"
+      - "--dockerfile=./Dockerfile"
+      - "--cache=true"
+      - "--build-arg=BUILD_ENV=$_STAGE"
+    id: Build
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
+    args:
+      - -c
+      - |
+        gcloud \
+        run \
+        services \
+        update \
+        $_SERVICE_NAME \
+        "--platform=managed" \
+        "--image=$_GCR_HOSTNAME/$PROJECT_ID/$REPO_NAME/$_SERVICE_NAME:$_PR_NUMBER-$COMMIT_SHA" \
+        "--labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$$BUILD_TRIGGER_ID,$_LABELS" \
+        "--region=$_DEPLOY_REGION" \
+        "--quiet" \
+        "--tag pr-$_PR_NUMBER" \
+        "--no-traffic" \
+    secretEnv: ["BUILD_TRIGGER_ID"]
+    id: Deploy
+    entrypoint: bash
+  - name: gcr.io/$PROJECT_ID/deployment-previews
+    args:
+      - set
+      - "--project-id"
+      - $PROJECT_ID
+      - "--region"
+      - $_REGION
+      - "--service"
+      - $_SERVICE_NAME
+      - "--pull-request"
+      - $_PR_NUMBER
+      - "--repo-name"
+      - $_GITHUB_REPO
+      - "--commit-sha"
+      - $COMMIT_SHA
+    id: LinkPR
+    secretEnv: ["GITHUB_TOKEN"]
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/$_TRIGGER_ID_SECRET/versions/latest
+      env: "BUILD_TRIGGER_ID"
+    - versionName: projects/$PROJECT_ID/secrets/github_token/versions/latest
+      env: GITHUB_TOKEN
+substitutions:
+  _STAGE: prod
+tags:
+  - gcp-cloud-build-deploy-cloud-run
+  - gcp-cloud-build-deploy-cloud-run-managed
+  - paydora-frontend
+timeout: 1200s
