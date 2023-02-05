@@ -1,0 +1,12 @@
+stage= "dev"
+project_id = "some-project"
+region = "europe-west1"
+instance_name = "meilisearch"
+env_vars = [ {
+  name = "MEILI_MASTER_KEY"
+  value = "XXXX"
+}, {
+  name = "MEILI_HTTP_ADDR"
+  value = "localhost:80"
+} ]
+
